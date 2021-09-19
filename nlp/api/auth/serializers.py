@@ -53,8 +53,9 @@ class LoginSerializer(serializers.ModelSerializer):
 
         try:
             user = User.objects.get(email=email)
-            user.check_password(password)
-
-            return user
+            if user.check_password(password) == True :
+                return user
+            else :
+                raise serializers.ValidationError({"message": "user not found or wrong password"})    
         except:
             raise serializers.ValidationError({"message": "user not found or wrong password"})

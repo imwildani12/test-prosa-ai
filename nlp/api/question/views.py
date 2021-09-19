@@ -1,14 +1,21 @@
-from apps.question.models import Question
+from .serializers import QuestionSerializer
 from rest_framework import generics
 from rest_framework.response import Response
 
-class QuestionView(generics.GenericAPIView):
 
-    def get(self, request, question_text):
-        q = Question.objects.get(text=question_text)
+class QuestionView(generics.CreateAPIView):
+    authentication_classes = []
+    serializer_class = QuestionSerializer
 
-        resp = {
-            "message" : q.answer if q else "your question is not listed on our database, im sorry"
-        }
-
-        return Response(resp, status = 200)
+    def post(self, request):
+        question_serializer = QuestionSerializer(data=request.data)
+        
+        if question_serializer.is_valid():
+            question = question_serializer.save()
+            resp = {
+                "msg": question.answer
+            }
+            
+            return Response(resp, status=200)
+        
+        return Response(question_serializer.errors, status=400)
