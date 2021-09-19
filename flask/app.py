@@ -1,14 +1,28 @@
   
+from flask_socketio import SocketIO, join_room, leave_room, emit, close_room
 from flask import Flask, render_template, request, redirect, url_for, session
+from flask_session import Session
+
 import requests as re
 
 app = Flask(__name__)
-api_url = 'localhost:8000/api/'
+app.debug = True
+app.config['SECRET_KEY'] = 'secret'
+app.config['SESSION_TYPE'] = 'filesystem'
+
+Session(app)
+
+socketio = SocketIO(app, manage_session=False)
+
+api_url = 'http://localhost:8000/api/'
 
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
+    if(session.get('email') != None):
+        return redirect(url_for('chat'))
+    else:
+        return render_template('index.html')
 
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
@@ -17,17 +31,48 @@ def chat():
             'email': request.form['email'],
             'password': request.form['password'] 
         }
-        user = re.post(api_url, data=data).json()
+        url = api_url + 'login/'
+        user = re.post(url, data=data).json()
         #Store the data in session
-        session['email'] = user.email
-        session['room'] = user.room
+        try:
+            session['email'] = user['email']
+            session['room'] = user['room']
+        except:
+            return "user not found"
         return render_template('chat.html', session = session)
     else:
-        if(session.get('email') is not None):
+        if(session.get('email') != None):
             return render_template('chat.html', session = session)
         else:
             return redirect(url_for('index'))
 
 
+@socketio.on('join', namespace='/chat')
+def join(message):
+    room = session.get('room')
+    join_room(room)
+    emit('message', {'msg': 'prosa-bot' + ' : Hi! thanks for your visit, feel free to ask me any question!'}, room=room)
+
+@socketio.on('text', namespace='/chat')
+def text(message):
+    room = session.get('room')
+    data = {    
+        'text': message['msg'] 
+    }
+    url = api_url + 'question/'
+    answer = re.post(url, data=data).json()
+    
+    emit('message', {'msg': session.get('email') + ' : ' + message['msg']}, room=room)
+    emit('message', {'msg': 'prosa-bot' + ' : ' + answer['msg']}, room=room)
+
+@socketio.on('left', namespace='/chat')
+def left(message):
+    print("someone")
+    room = session.get('room')
+    close_room(room)
+    session.clear()
+
+
+
 if __name__ == '__main__':
-    app.run()
+    socketio.run(app)
