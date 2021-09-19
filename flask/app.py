@@ -14,7 +14,7 @@ Session(app)
 
 socketio = SocketIO(app, manage_session=False)
 
-api_url = 'http://localhost:8000/api/'
+api_url = 'http://django:8000/api/'
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -75,4 +75,4 @@ def left(message):
 
 
 if __name__ == '__main__':
-    socketio.run(app)
+    socketio.run(app, host='0.0.0.0', port='5000')
