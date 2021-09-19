@@ -10,16 +10,17 @@
         <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
         <script type="text/javascript" charset="utf-8">
             var socket;
+            var idleTime = 0;
             $(document).ready(function(){
+                // Increment the idle time counter every minute.
+                var idleInterval = setInterval(timerIncrement, 60000); // 1 minute
+
                 socket = io.connect('http://' + document.domain + ':' + location.port + '/chat');
                 socket.on('connect', function() {
                     socket.emit('join', {});
                 });
-                socket.on('status', function(data) {
-                    $('#chat').val($('#chat').val() + '<' + data.msg + '>\n');
-                    $('#chat').scrollTop($('#chat')[0].scrollHeight);
-                });
                 socket.on('message', function(data) {
+                    idleTime=0;
                     $('#chat').val($('#chat').val() + data.msg + '\n');
                     $('#chat').scrollTop($('#chat')[0].scrollHeight);
                 });
@@ -32,9 +33,17 @@
             function leave_room() {
                 socket.emit('left', {}, function() {
                     socket.disconnect();
+                    alert("thanks for using our service :)");
                     // go back to the login page
                     window.location.href = "{{ url_for('index') }}";
                 });
+            }
+            window.onbeforeunload = leave_room();
+            function timerIncrement() {
+                idleTime = idleTime + 1;
+                if (idleTime > 3) {
+                    leave_room();
+                }
             }
         </script>
   </head>
