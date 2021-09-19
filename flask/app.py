@@ -24,6 +24,29 @@ def index():
     else:
         return render_template('index.html')
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if(request.method=='POST'):
+        data = {    
+            'email': request.form['email'],
+            'password': request.form['password'],
+            'password2': request.form['password2'] 
+        }
+        url = api_url + 'register/'
+        user = re.post(url, data=data).json()
+        #Store the data in session
+        try:
+            session['email'] = user['email']
+            session['room'] = user['room']
+        except:
+            return render_template('register.html')
+        return render_template('chat.html', session = session)
+    else:
+        if(session.get('email') != None):
+            return render_template('chat.html', session = session)
+        else:
+            return render_template('register.html')
+
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
     if(request.method=='POST'):
